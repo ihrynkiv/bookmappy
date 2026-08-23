@@ -28,3 +28,4 @@ dist-ssr
 
 # Smoke-test bundle
 scripts/smoke.mjs
+scripts/smoke.css
