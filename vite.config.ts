@@ -6,6 +6,13 @@ import react from "@vitejs/plugin-react";
 export default defineConfig({
   plugins: [react()],
   base: process.env.VITE_BASE ?? "/bookmappy/",
+  server: {
+    watch: {
+      // `npm run layout` writes a whole build into dist-audit. Without this the
+      // dev server notices and hammers the open browser with page reloads.
+      ignored: ["**/dist/**", "**/dist-audit/**", "**/scripts/*.mjs"],
+    },
+  },
   build: {
     // Firebase and the world geometry both change far less often than app code;
     // keeping them in their own chunks means a redeploy only busts the small one.
