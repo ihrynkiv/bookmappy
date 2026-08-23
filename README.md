@@ -8,6 +8,9 @@ you've read. Click a country to see just those books.
 - **Author countries are looked up automatically** from Wikidata. No API key.
 - **Import from Goodreads** via the CSV export.
 - **Batch-fix countries** — select several books and assign one country at once.
+- **Full book list** — click any figure in the header to see every book, sortable
+  by date read, rating, title, author or country. Click the wordmark for the map.
+- **Re-import safely** — a fresh Goodreads export only looks up the new authors.
 - Works on phone and laptop. Static site, no server of your own.
 
 ## How an author gets a country
@@ -74,6 +77,8 @@ regressions of that kind — this catches them.
 | `src/data/historical.ts` | Defunct states → modern countries (hand-curated) |
 | `src/data/countries.generated.ts` | ISO codes, generated from Wikidata |
 | `src/lib/goodreads.ts` | CSV export parser |
+| `src/lib/import.ts` | Merge plan for re-imports (preserves resolution) |
+| `src/lib/sort.ts` | Book list sorting |
 | `src/lib/geo.ts` | TopoJSON ↔ ISO alpha-2 bridge |
 | `src/lib/stats.ts` | Per-country aggregation |
 | `src/lib/store.ts` | Firestore-or-local storage, live-synced |
@@ -83,6 +88,19 @@ regressions of that kind — this catches them.
 
 No API keys are needed for Wikidata or Open Library, and neither is proxied —
 both send `Access-Control-Allow-Origin: *`, so the browser talks to them directly.
+
+## Re-importing a year later
+
+Dump a fresh Goodreads export in and only the genuinely new books cost anything.
+Books already in the library keep `authorQid`, `countryCode`, `countryManual`,
+`status` and `note` untouched, so no author is looked up twice and no country you
+fixed by hand is overwritten. Ratings, dates and shelves still refresh, so a book
+that moved from to-read to read catches up — untick the box in the import dialog
+to skip known books entirely.
+
+The one case that does re-resolve is an author whose name changed in the export,
+since the stored country was derived from the old spelling. Even then a manual
+override wins.
 
 ## Deploying
 

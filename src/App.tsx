@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { WorldMap } from "./components/WorldMap";
 import { CountryPanel } from "./components/CountryPanel";
 import { BookList } from "./components/BookList";
+import { BooksView } from "./components/BooksView";
 import { AddBookDialog } from "./components/AddBookDialog";
 import { EditBookDialog } from "./components/EditBookDialog";
 import { ImportDialog } from "./components/ImportDialog";
@@ -11,6 +12,8 @@ import {
   computeCountryStats, computeTotals, METRIC_LABELS, METRIC_LABELS_SHORT,
 } from "./lib/stats";
 import { isFirebaseConfigured, signIn, signOutUser } from "./lib/firebase";
+import type { SortDir, SortField } from "./lib/sort";
+import { planImport } from "./lib/import";
 import type { Book, Metric } from "./lib/types";
 import "./App.css";
 
@@ -26,6 +29,10 @@ export default function App() {
   const [dialog, setDialog] = useState<"add" | "import" | null>(null);
   const [editing, setEditing] = useState<Book | null>(null);
   const [selected_, setSelectedIds] = useState<Set<string>>(() => new Set());
+  const [view, setView] = useState<"map" | "books">("map");
+  const [sort, setSort] = useState<{ field: SortField; dir: SortDir }>({
+    field: "dateRead", dir: "desc",
+  });
 
   const shelves = useMemo(
     () => [...new Set(library.books.map((b) => b.shelf))].sort(),
@@ -52,6 +59,19 @@ export default function App() {
     () => [...stats.values()].sort((a, b) => b.books - a.books).slice(0, 12),
     [stats],
   );
+
+  function goHome() {
+    setView("map");
+    setSelected(null);
+    clearSelection();
+  }
+
+  function openBooks(field: SortField, dir: SortDir) {
+    setView("books");
+    setSelected(null);
+    clearSelection();
+    setSort({ field, dir });
+  }
 
   const toggleSelect = (id: string) =>
     setSelectedIds((prev) => {
@@ -85,6 +105,15 @@ export default function App() {
   async function deleteMany(ids: string[]) {
     clearSelection();
     await library.deleteBooks(ids);
+  }
+
+  /**
+   * A re-import is mostly books we already have; `planImport` keeps their
+   * resolved countries and manual overrides so nothing is looked up twice.
+   */
+  async function importBooks(incoming: Book[], updateExisting: boolean) {
+    const plan = planImport(library.books, incoming, updateExisting);
+    await library.saveBooks(plan.books);
   }
 
   async function addBook(book: Book) {
@@ -135,14 +164,20 @@ export default function App() {
   return (
     <div className="app">
       <header className="topbar">
-        <h1>📚 bookmappy</h1>
+        <h1>
+          <button className="wordmark" onClick={goHome} aria-label="Back to the map">
+            📚 bookmappy
+          </button>
+        </h1>
         <div className="totals">
-          <Total value={totals.books} label="books" />
-          <Total value={totals.authors} label="authors" />
-          <Total value={totals.countries} label="countries" />
+          {/* Each figure opens the full list, sorted by what you clicked. */}
+          <Total value={totals.books} label="books" onClick={() => openBooks("dateRead", "desc")} />
+          <Total value={totals.authors} label="authors" onClick={() => openBooks("author", "asc")} />
+          <Total value={totals.countries} label="countries" onClick={() => openBooks("country", "asc")} />
           <Total
             value={totals.avgRating ? totals.avgRating.toFixed(2) : "—"}
             label="avg rating"
+            onClick={() => openBooks("rating", "desc")}
           />
         </div>
         <div className="topbar-actions">
@@ -218,7 +253,14 @@ export default function App() {
         </p>
       )}
 
-      {library.loading ? (
+      {view === "books" ? (
+        <BooksView
+          books={visible}
+          sort={sort}
+          onSort={(field, dir) => setSort({ field, dir })}
+          selection={selectionProps}
+        />
+      ) : library.loading ? (
         <p className="empty">Loading your library…</p>
       ) : library.books.length === 0 ? (
         <div className="empty">
@@ -240,7 +282,7 @@ export default function App() {
         />
       )}
 
-      {selected && stats.get(selected) ? (
+      {view === "books" ? null : selected && stats.get(selected) ? (
         <CountryPanel
           stat={stats.get(selected)!}
           books={selectedBooks}
@@ -302,7 +344,7 @@ export default function App() {
       {dialog === "import" && (
         <ImportDialog
           existing={library.books}
-          onImport={library.saveBooks}
+          onImport={importBooks}
           onClose={() => setDialog(null)}
         />
       )}
@@ -320,11 +362,13 @@ export default function App() {
   );
 }
 
-function Total({ value, label }: { value: number | string; label: string }) {
+function Total({
+  value, label, onClick,
+}: { value: number | string; label: string; onClick: () => void }) {
   return (
-    <div className="total">
+    <button className="total" onClick={onClick} title={`Show all books by ${label}`}>
       <strong>{typeof value === "number" ? value.toLocaleString() : value}</strong>
       <span>{label}</span>
-    </div>
+    </button>
   );
 }

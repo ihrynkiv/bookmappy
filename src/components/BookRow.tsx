@@ -28,10 +28,14 @@ export function BookRow({
       <Cover title={book.title} author={book.author} url={book.coverUrl} />
       <div className="book-main">
         <span className="book-title">{book.title}</span>
-        <span className="muted">
-          {book.author}
-          {showCountry && book.countryCode && ` · ${countryName(book.countryCode)}`}
-          {book.shelf !== "read" && ` · ${book.shelf}`}
+        {/* The author is the part that truncates: the country is short, and it
+            is the whole point of this app, so it keeps its space. */}
+        <span className="book-meta muted">
+          <span className="book-author">{book.author}</span>
+          {showCountry && book.countryCode && (
+            <span className="book-country">{countryName(book.countryCode)}</span>
+          )}
+          {book.shelf !== "read" && <span className="book-shelf">{book.shelf}</span>}
         </span>
         {book.note && <span className="note">{book.note}</span>}
       </div>

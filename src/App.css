@@ -130,8 +130,19 @@ select, input[type="text"], input[type="date"], input:not([type]) {
 .book-row { display: flex; gap: 11px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
 .book-row:last-child { border-bottom: 0; }
 .book-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-.book-title { font-weight: 500; }
-.book-main span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Two lines of title beat one truncated line on a phone. */
+.book-title {
+  font-weight: 500; display: -webkit-box; -webkit-line-clamp: 2;
+  -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.book-meta { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+.book-author { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.book-country, .book-shelf {
+  flex: none; font-size: 11px; padding: 1px 7px; border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent); white-space: nowrap;
+}
+.book-shelf { background: color-mix(in srgb, var(--muted) 18%, transparent); color: var(--muted); }
 .book-side { text-align: right; display: flex; flex-direction: column; align-items: flex-end; }
 .book-actions { display: flex; gap: 2px; }
 .book-actions button { padding: 4px 7px; border-color: transparent; background: transparent; }
@@ -251,4 +262,42 @@ select, input[type="text"], input[type="date"], input:not([type]) {
 @media (max-width: 860px) {
   .metric-long { display: none; }
   .metric-short { display: inline; }
+}
+
+/* ---------- clickable header ---------- */
+.wordmark {
+  background: transparent; border: 0; padding: 0; margin: 0;
+  font: inherit; color: inherit; letter-spacing: inherit; cursor: pointer;
+}
+.wordmark:hover { color: var(--accent); }
+
+.total {
+  border: 0; background: transparent; padding: 2px 0; text-align: left; cursor: pointer;
+  display: flex; flex-direction: column; line-height: 1.2; border-radius: 6px;
+}
+.total:hover strong { color: var(--accent); }
+.total:hover span { color: var(--accent); }
+
+/* ---------- sort bar ---------- */
+.sort-bar { display: flex; gap: 6px; flex-wrap: wrap; margin: 4px 0 10px; }
+.sort-btn {
+  padding: 5px 11px; font-size: 13px; color: var(--muted);
+  display: inline-flex; align-items: center; gap: 5px;
+}
+.sort-btn.active { color: #fff; background: var(--accent); border-color: var(--accent); }
+.sort-arrow { font-size: 11px; opacity: 0.85; }
+
+.plan { margin: 8px 0 2px; font-size: 14px; }
+.plan strong { color: var(--accent); }
+.update-toggle { margin: 10px 0 4px; }
+
+@media (max-width: 860px) {
+  /* Guarantee the author a readable minimum; if the country chip then does not
+     fit beside it, the chip wraps to its own line rather than the author being
+     shaved to two characters. Rows only grow taller when they need to. */
+  .book-meta { flex-wrap: wrap; row-gap: 3px; }
+  .book-author { min-width: 14ch; }
+
+  .sort-bar { gap: 5px; }
+  .sort-btn { flex: 1 1 auto; min-width: 0; justify-content: center; padding: 7px 8px; font-size: 12px; }
 }

@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { parseGoodreadsCsv } from "../lib/goodreads";
+import { planImport } from "../lib/import";
 import type { Book } from "../lib/types";
 import { Dialog } from "./Dialog";
 
 type Props = {
   existing: Book[];
-  onImport: (books: Book[]) => Promise<void>;
+  onImport: (books: Book[], updateExisting: boolean) => Promise<void>;
   onClose: () => void;
 };
 
@@ -18,6 +19,8 @@ type Stage =
 export function ImportDialog({ existing, onImport, onClose }: Props) {
   const [stage, setStage] = useState<Stage>({ kind: "idle" });
   const [shelves, setShelves] = useState<Set<string>>(new Set(["read"]));
+  /** Refresh ratings and dates on books already in the library. */
+  const [updateExisting, setUpdateExisting] = useState(true);
 
   async function handleFile(file: File) {
     try {
@@ -43,9 +46,7 @@ export function ImportDialog({ existing, onImport, onClose }: Props) {
 
   const selected =
     stage.kind === "parsed" ? stage.books.filter((b) => shelves.has(b.shelf)) : [];
-  const existingIds = new Set(existing.map((b) => b.id));
-  const fresh = selected.filter((b) => !existingIds.has(b.id));
-  const duplicates = selected.length - fresh.length;
+  const plan = planImport(existing, selected, updateExisting);
 
   return (
     <Dialog title="Import from Goodreads" onClose={onClose} wide>
@@ -109,10 +110,27 @@ export function ImportDialog({ existing, onImport, onClose }: Props) {
               );
             })}
           </div>
+          {existing.length > 0 && (
+            <label className="check update-toggle">
+              <input
+                type="checkbox"
+                checked={updateExisting}
+                onChange={(e) => setUpdateExisting(e.target.checked)}
+              />
+              Refresh ratings, dates and shelves on books I already have
+            </label>
+          )}
+
+          <p className="plan">
+            <strong>{plan.added}</strong> new
+            {plan.updated > 0 && <> · <strong>{plan.updated}</strong> updated</>}
+            {plan.unchanged > 0 && <> · {plan.unchanged} already up to date</>}
+            {plan.skipped > 0 && <> · {plan.skipped} skipped</>}
+          </p>
           <p className="muted small">
-            {fresh.length} to import
-            {duplicates > 0 && ` · ${duplicates} already in your library will be updated`}. Author
-            countries are looked up right after importing.
+            Books already in your library keep the country they resolved to, including any
+            you set by hand — so nothing is looked up twice. Only the {plan.added} new{" "}
+            {plan.added === 1 ? "author" : "authors"} will be sent to Wikidata.
           </p>
           <footer className="dialog-actions">
             <button className="ghost" onClick={() => setStage({ kind: "idle" })}>
@@ -120,14 +138,16 @@ export function ImportDialog({ existing, onImport, onClose }: Props) {
             </button>
             <button
               className="primary"
-              disabled={selected.length === 0}
+              disabled={plan.books.length === 0}
               onClick={async () => {
                 setStage({ kind: "saving" });
-                await onImport(selected);
+                await onImport(selected, updateExisting);
                 onClose();
               }}
             >
-              Import {selected.length} books
+              {plan.books.length === 0
+                ? "Nothing to import"
+                : `Import ${plan.books.length} ${plan.books.length === 1 ? "book" : "books"}`}
             </button>
           </footer>
         </>

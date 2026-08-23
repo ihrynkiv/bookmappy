@@ -90,6 +90,71 @@ const legacyImg = qa("img.cover").find((e) => (e as any).src.includes("978197471
 console.log("  legacy seeded URL rendered with flag:", Boolean(legacyImg?.src.includes("default=false")));
 if (legacyImg && !legacyImg.src.includes("default=false")) errors.push("legacy cover URL not normalised");
 
+console.log("--- re-import merge ---");
+{
+  const { planImport } = await import("../src/lib/import");
+  const base: any = {
+    id: "gr-1", title: "Kobzar", author: "Taras Shevchenko", rating: 4, dateRead: "2023-01-01",
+    pages: 100, isbn: null, coverUrl: null, shelf: "to-read", authorQid: "Q134958",
+    countryCode: "UA", countryManual: false, status: "resolved", note: "birthplace",
+    createdAt: 1, updatedAt: 1,
+  };
+  const check = (name: string, cond: boolean, detail = "") => {
+    console.log(`  ${cond ? "ok  " : "FAIL"} ${name}${detail ? "  " + detail : ""}`);
+    if (!cond) errors.push("planImport: " + name);
+  };
+
+  const brandNew = { ...base, id: "gr-2", title: "New Book", countryCode: null, status: "pending" };
+  let p = planImport([base], [base, brandNew], true);
+  check("new book added, identical one left alone", p.added === 1 && p.unchanged === 1 && p.books.length === 1);
+
+  // Re-export marks it read with a new rating: refresh, but keep the country.
+  const reread = { ...base, rating: 5, shelf: "read", dateRead: "2024-06-01",
+                   countryCode: null, status: "pending", authorQid: null, note: null };
+  p = planImport([base], [reread], true);
+  const merged = p.books[0];
+  check("rating/shelf/date refreshed", merged.rating === 5 && merged.shelf === "read" && merged.dateRead === "2024-06-01");
+  check("resolution preserved, not reset", merged.countryCode === "UA" && merged.status === "resolved" && merged.authorQid === "Q134958",
+        `got ${merged.countryCode}/${merged.status}`);
+
+  // The whole point: a manual override must survive a re-import.
+  const manual = { ...base, countryManual: true, countryCode: "PL", note: "set by hand" };
+  p = planImport([manual], [reread], true);
+  check("manual country survives re-import", p.books[0].countryCode === "PL" && p.books[0].countryManual === true);
+
+  // Author renamed and country was automatic -> stale, so look it up again.
+  p = planImport([base], [{ ...base, author: "T. Shevchenko" }], true);
+  check("renamed author re-resolves", p.books[0].status === "pending" && p.books[0].countryCode === null);
+  // ...but not when a human chose the country.
+  p = planImport([manual], [{ ...base, author: "T. Shevchenko" }], true);
+  check("renamed author does NOT undo a manual country", p.books[0].countryCode === "PL");
+
+  p = planImport([base], [reread, brandNew], false);
+  check("updateExisting=false skips known books", p.added === 1 && p.skipped === 1 && p.books.length === 1);
+
+  const big = Array.from({ length: 300 }, (_, i) => ({ ...base, id: `gr-${i}` }));
+  p = planImport(big, big, true);
+  check("re-importing an unchanged library writes nothing", p.books.length === 0 && p.unchanged === 300);
+}
+
+console.log("--- sorting ---");
+{
+  const { sortBooks } = await import("../src/lib/sort");
+  const mk = (title: string, rating: any, cc: any, date: any) =>
+    ({ title, author: "A", rating, countryCode: cc, dateRead: date }) as any;
+  const list = [mk("b", 3, "JP", "2024-01-01"), mk("a", null, null, null), mk("c", 5, "AR", "2023-01-01")];
+  const t = (f: any, d: any) => sortBooks(list, f, d).map((b) => b.title).join("");
+  const check = (name: string, got: string, want: string) => {
+    console.log(`  ${got === want ? "ok  " : "FAIL"} ${name}: ${got}${got === want ? "" : " want " + want}`);
+    if (got !== want) errors.push(`sort ${name}`);
+  };
+  check("rating desc, nulls last", t("rating", "desc"), "cba");
+  check("rating asc, nulls last", t("rating", "asc"), "bca");
+  check("country asc (by name)", t("country", "asc"), "cba");
+  check("date desc, nulls last", t("dateRead", "desc"), "bca");
+  check("title asc", t("title", "asc"), "abc");
+}
+
 console.log("--- bulk edit ---");
 const unplacedRows = qa(".panel input.row-check").length;
 console.log("unplaced rows with checkboxes:", unplacedRows);
@@ -113,6 +178,30 @@ console.log("assigned to Poland:", nowPolish.length,
             "| status:", [...new Set(nowPolish.map((b: any) => b.status))].join(","));
 console.log("selection cleared after assign:", q(".bulk-bar") === null);
 console.log("Poland now on the map:", qa("path.country.has-books").length);
+
+console.log("--- navigation ---");
+{
+  const totals = qa(".total") as any[];
+  console.log("  clickable stat buttons:", totals.length);
+  await act(async () => { totals[0].click(); });
+  const inBooks = document.body.textContent?.includes("All books");
+  console.log("  clicking a stat opens the books view:", inBooks,
+              "| sort buttons:", qa(".sort-btn").length,
+              "| rows:", qa(".book-row").length);
+  if (!inBooks) errors.push("stat click did not open the books view");
+
+  const firstBefore = q(".book-row .book-title")?.textContent;
+  const titleSort = qa(".sort-btn").find((b) => b.textContent?.startsWith("Title")) as any;
+  await act(async () => { titleSort.click(); });
+  const firstAfter = q(".book-row .book-title")?.textContent;
+  console.log(`  sorting by title reorders: ${firstBefore !== firstAfter} (${firstBefore} -> ${firstAfter})`);
+  if (firstBefore === firstAfter) errors.push("sort by title did not reorder");
+
+  await act(async () => { (q(".wordmark") as any).click(); });
+  const home = q(".map-wrap") !== null && !document.body.textContent?.includes("All books");
+  console.log("  clicking the wordmark returns to the map:", home);
+  if (!home) errors.push("wordmark did not return home");
+}
 
 console.log("--- errors ---");
 console.log("react errors:", errors.length ? errors.slice(0, 3) : "none");

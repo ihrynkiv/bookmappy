@@ -155,9 +155,16 @@ const signedIn = async (p) => {
   });
 };
 results.push(await audit("mobile-signed-in", 390, 844, signedIn));
+const openBooks = async (p) => {
+  await p.evaluate(() => document.querySelector(".total")?.click());
+  await new Promise((r) => setTimeout(r, 250));
+};
+results.push(await audit("mobile-books", 390, 844, openBooks));
 results.push(await audit("mobile-small", 320, 700));
 results.push(await audit("mobile-small-signed-in", 320, 700, signedIn));
+results.push(await audit("mobile-small-books", 320, 700, openBooks));
 results.push(await audit("laptop", 1280, 800));
+results.push(await audit("laptop-books", 1280, 800, openBooks));
 
 await browser.close();
 server.close();
