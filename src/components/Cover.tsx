@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { MIN_REAL_COVER_PX, coverHue, coverInitial, withDefaultFalse } from "../lib/covers";
 
 /**
  * Book covers, with a drawn fallback rather than an empty box.
@@ -11,27 +12,6 @@ import { useState } from "react";
  * treated as missing anyway.
  */
 type Props = { title: string; author: string; url: string | null; size?: "normal" | "small" };
-
-/** Anything this small is a placeholder, not cover art. */
-const MIN_REAL_COVER_PX = 2;
-
-function withDefaultFalse(url: string | null): string | null {
-  if (!url || !url.includes("covers.openlibrary.org")) return url;
-  if (/[?&]default=/.test(url)) return url;
-  return `${url}${url.includes("?") ? "&" : "?"}default=false`;
-}
-
-/** Stable hue per author, so an author's books share a colour on the shelf. */
-function hue(seed: string): number {
-  let h = 0;
-  for (let i = 0; i < seed.length; i += 1) h = (h * 31 + seed.charCodeAt(i)) % 360;
-  return h;
-}
-
-function initial(title: string): string {
-  const first = title.trim().replace(/^(the|a|an)\s+/i, "").charAt(0);
-  return (first || "?").toUpperCase();
-}
 
 export function Cover({ title, author, url, size = "normal" }: Props) {
   // Keyed by URL rather than a bare boolean, so a book whose cover changes gets
@@ -55,7 +35,7 @@ export function Cover({ title, author, url, size = "normal" }: Props) {
     );
   }
 
-  const h = hue(author || title);
+  const h = coverHue(author || title);
   return (
     <span
       className={`${className} cover-fallback`}
@@ -65,10 +45,7 @@ export function Cover({ title, author, url, size = "normal" }: Props) {
       aria-hidden="true"
     >
       <span className="cover-spine" />
-      <span className="cover-initial">{initial(title)}</span>
+      <span className="cover-initial">{coverInitial(title)}</span>
     </span>
   );
 }
-
-/** Exported for tests. */
-export const __test = { withDefaultFalse, initial };

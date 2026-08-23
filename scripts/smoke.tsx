@@ -73,7 +73,7 @@ console.log("img covers:", qa("img.cover").length, "| drawn fallbacks:", qa(".co
 console.log("no legacy empty boxes:", qa(".cover-missing").length === 0);
 
 console.log("--- cover url normalisation ---");
-const { __test } = await import("../src/components/Cover");
+const { withDefaultFalse } = await import("../src/lib/covers");
 const cases: [string | null, string][] = [
   ["https://covers.openlibrary.org/b/isbn/123-M.jpg", "https://covers.openlibrary.org/b/isbn/123-M.jpg?default=false"],
   ["https://covers.openlibrary.org/b/isbn/123-M.jpg?default=false", "https://covers.openlibrary.org/b/isbn/123-M.jpg?default=false"],
@@ -82,7 +82,7 @@ const cases: [string | null, string][] = [
   [null, null as any],
 ];
 for (const [input, want] of cases) {
-  const got = __test.withDefaultFalse(input);
+  const got = withDefaultFalse(input);
   console.log(`  ${got === want ? "ok  " : "FAIL"} ${String(input).slice(0, 58)} -> ${String(got).slice(-24)}`);
   if (got !== want) errors.push(`withDefaultFalse(${input}) = ${got}, want ${want}`);
 }
