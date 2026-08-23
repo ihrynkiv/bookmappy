@@ -1,0 +1,15 @@
+rules_version = '2';
+
+// Every book lives under its owner's uid and is readable and writable by nobody
+// else. The Firebase web config in the built site is public by design; these
+// rules — not the config — are what protect the data.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId}/books/{bookId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

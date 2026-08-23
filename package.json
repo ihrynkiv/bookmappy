@@ -1,0 +1,41 @@
+{
+  "name": "bookmappy",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "oxlint",
+    "preview": "vite preview",
+    "smoke": "esbuild scripts/smoke.tsx --bundle --platform=browser --conditions=browser --format=esm --jsx=automatic --outfile=scripts/smoke.mjs --log-level=error --loader:.json=json --external:jsdom --external:node:fs --define:import.meta.env={} --define:process.env.NODE_ENV=\\\"development\\\" && node scripts/smoke.mjs",
+    "check": "tsc -b && npm run lint && npm run smoke"
+  },
+  "dependencies": {
+    "d3-geo": "^3.1.1",
+    "d3-scale": "^4.0.2",
+    "firebase": "^12.18.0",
+    "papaparse": "^5.6.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "topojson-client": "^3.1.0",
+    "world-atlas": "^2.0.2"
+  },
+  "devDependencies": {
+    "@types/d3-geo": "^3.1.1",
+    "@types/d3-scale": "^4.0.9",
+    "@types/node": "^24.13.3",
+    "@types/papaparse": "^5.5.2",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@types/topojson-client": "^3.1.5",
+    "@vitejs/plugin-react": "^6.0.4",
+    "esbuild": "^0.28.2",
+    "gh-pages": "^6.3.0",
+    "jsdom": "^29.1.1",
+    "oxlint": "^1.75.0",
+    "typescript": "~6.0.2",
+    "vite": "^8.2.0"
+  },
+  "description": "Track the books you read as a map of the world, coloured by where your authors come from."
+}
