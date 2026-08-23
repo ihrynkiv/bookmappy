@@ -9,7 +9,8 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "smoke": "esbuild scripts/smoke.tsx --bundle --platform=browser --conditions=browser --format=esm --jsx=automatic --outfile=scripts/smoke.mjs --log-level=error --loader:.json=json --external:jsdom --external:node:fs --define:import.meta.env={} --define:process.env.NODE_ENV=\\\"development\\\" && node scripts/smoke.mjs",
-    "check": "tsc -b && npm run lint && npm run smoke"
+    "check": "tsc -b && npm run lint && npm run smoke",
+    "e2e": "esbuild scripts/e2e.ts --bundle --platform=node --format=esm --outfile=scripts/e2e.mjs --log-level=error && node scripts/e2e.mjs"
   },
   "dependencies": {
     "d3-geo": "^3.1.1",
