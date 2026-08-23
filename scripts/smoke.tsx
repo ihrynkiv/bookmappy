@@ -30,8 +30,12 @@ const seeded = parsed.books.map((b) => ({
   ...b,
   countryCode: codes[b.author] ?? null,
   status: (codes[b.author] ? "resolved" : "no-country") as any,
-  // Force one book to have no cover so the fallback is exercised.
-  coverUrl: b.author === "Mikhail Bulgakov" ? null : b.coverUrl,
+  // Three cover shapes: none at all, a legacy URL without default=false (the
+  // shape imported before that flag existed), and a normal flagged one.
+  coverUrl:
+    b.author === "Mikhail Bulgakov" ? null
+    : b.author === "Yuval Noah Harari" ? "https://covers.openlibrary.org/b/isbn/9781974710805-M.jpg"
+    : b.coverUrl,
 }));
 dom.window.localStorage.setItem(KEY, JSON.stringify(seeded));
 
@@ -67,6 +71,24 @@ console.log("--- covers ---");
 console.log("img covers:", qa("img.cover").length, "| drawn fallbacks:", qa(".cover-fallback").length,
             "| initials:", qa(".cover-initial").map((e) => e.textContent).join(""));
 console.log("no legacy empty boxes:", qa(".cover-missing").length === 0);
+
+console.log("--- cover url normalisation ---");
+const { __test } = await import("../src/components/Cover");
+const cases: [string | null, string][] = [
+  ["https://covers.openlibrary.org/b/isbn/123-M.jpg", "https://covers.openlibrary.org/b/isbn/123-M.jpg?default=false"],
+  ["https://covers.openlibrary.org/b/isbn/123-M.jpg?default=false", "https://covers.openlibrary.org/b/isbn/123-M.jpg?default=false"],
+  ["https://covers.openlibrary.org/b/id/9-M.jpg?foo=1", "https://covers.openlibrary.org/b/id/9-M.jpg?foo=1&default=false"],
+  ["https://example.com/cover.jpg", "https://example.com/cover.jpg"],
+  [null, null as any],
+];
+for (const [input, want] of cases) {
+  const got = __test.withDefaultFalse(input);
+  console.log(`  ${got === want ? "ok  " : "FAIL"} ${String(input).slice(0, 58)} -> ${String(got).slice(-24)}`);
+  if (got !== want) errors.push(`withDefaultFalse(${input}) = ${got}, want ${want}`);
+}
+const legacyImg = qa("img.cover").find((e) => (e as any).src.includes("9781974710805")) as any;
+console.log("  legacy seeded URL rendered with flag:", Boolean(legacyImg?.src.includes("default=false")));
+if (legacyImg && !legacyImg.src.includes("default=false")) errors.push("legacy cover URL not normalised");
 
 console.log("--- bulk edit ---");
 const unplacedRows = qa(".panel input.row-check").length;

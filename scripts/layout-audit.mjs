@@ -43,9 +43,21 @@ const books = [
   ["An Extremely Long Book Title That Should Never Widen The Page", "Some Author With A Very Long Name Indeed", null, 3],
   ["The Art of War", "Sun Tzu", null, 4],
 ];
+// Cover shapes to exercise: a real cover, a legacy URL with no default=false
+// whose ISBN has no art (Open Library answers 200 + a 1x1 GIF), the same ISBN
+// already flagged (404s), and no URL at all.
+// Put these on the two unplaced books, which are always on screen.
+const COVERS = {
+  // Legacy URL with no default=false, for an ISBN with no art: Open Library
+  // answers 200 + a 1x1 GIF, so onError never fires. Must still fall back.
+  "An Extremely Long Book Title That Should Never Widen The Page":
+    "https://covers.openlibrary.org/b/isbn/9781974710805-M.jpg",
+  // A real cover, which must survive and not be mistaken for a placeholder.
+  "The Art of War": "https://covers.openlibrary.org/b/isbn/9780307476463-M.jpg?default=false",
+};
 const seed = JSON.stringify(books.map(([title, author, cc, rating], i) => ({
   id: `b${i}`, title, author, rating, dateRead: "2024-01-0" + ((i % 9) + 1), pages: 300, isbn: null,
-  coverUrl: null, shelf: "read", authorQid: null, countryCode: cc, countryManual: false,
+  coverUrl: COVERS[title] ?? null, shelf: "read", authorQid: null, countryCode: cc, countryManual: false,
   status: cc ? "resolved" : "no-country", note: null, createdAt: 0, updatedAt: 0,
 })));
 
@@ -58,6 +70,15 @@ async function audit(name, width, height, actions = async () => {}) {
   await page.evaluate((s) => localStorage.setItem("bookmappy.books.v1", s), seed);
   await page.reload({ waitUntil: "networkidle0" });
   await actions(page);
+  // Covers are lazy-loaded; scroll to the bottom and let the network settle so
+  // the fallback logic has actually run by the time we measure.
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  // Wait for every cover img to settle (loaded or errored), not a fixed guess.
+  await page.waitForFunction(
+    () => [...document.querySelectorAll("img.cover")].every((i) => i.complete),
+    { timeout: 15000 },
+  ).catch(() => {});
+  await new Promise((r) => setTimeout(r, 400));
 
   const report = await page.evaluate(() => {
     const de = document.documentElement;
@@ -77,7 +98,17 @@ async function audit(name, width, height, actions = async () => {}) {
       const r = el.getBoundingClientRect();
       return { t: Math.round(r.top), l: Math.round(r.left), r: Math.round(r.right), w: Math.round(r.width) };
     };
+    const covers = {
+      imgs: [...document.querySelectorAll("img.cover")].map((i) => ({
+        w: i.naturalWidth, src: i.getAttribute("src") || "",
+      })),
+      fallbacks: document.querySelectorAll(".cover-fallback").length,
+      unflagged: [...document.querySelectorAll("img.cover")]
+        .filter((i) => (i.getAttribute("src") || "").includes("openlibrary") &&
+                       !(i.getAttribute("src") || "").includes("default=false")).length,
+    };
     return {
+      covers,
       pageScrollW: de.scrollWidth, viewportW: de.clientWidth,
       hOverflow: de.scrollWidth > de.clientWidth + 1,
       overflowing,
@@ -95,6 +126,12 @@ async function audit(name, width, height, actions = async () => {}) {
   console.log("  " + fmt("totals ", report.totals));
   console.log("  " + fmt("map    ", report.map));
   console.log("  " + fmt("panel  ", report.panel));
+  const c = report.covers;
+  console.log(`  covers: ${c.imgs.length} img, ${c.fallbacks} drawn fallback, ${c.unflagged} unflagged url` +
+              (c.imgs.length ? ` | natural widths: ${c.imgs.map((i) => i.w).join(",")}` : ""));
+  const blank = c.imgs.filter((i) => i.w > 0 && i.w <= 2).length;
+  if (blank || c.unflagged) console.log(`  ❌ ${blank} blank 1x1 image(s) shown, ${c.unflagged} unflagged url(s)`);
+  report.coverProblem = blank > 0 || c.unflagged > 0;
   await page.screenshot({ path: `dist-audit/shot-${name}.png`, fullPage: true });
   await page.close();
   return report;
@@ -126,5 +163,7 @@ await browser.close();
 server.close();
 
 const bad = results.filter((r) => r.hOverflow).length;
+const coverBad = results.filter((r) => r.coverProblem).length;
 console.log(`\n${bad === 0 ? "✓ no horizontal overflow at any width" : `❌ ${bad} viewport(s) overflow`}`);
-process.exit(bad === 0 ? 0 : 1);
+console.log(`${coverBad === 0 ? "✓ no blank placeholder images shown" : `❌ blank covers at ${coverBad} viewport(s)`}`);
+process.exit(bad === 0 && coverBad === 0 ? 0 : 1);
