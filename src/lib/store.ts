@@ -26,9 +26,26 @@ function writeLocal(books: Book[]): void {
   }
 }
 
+/**
+ * Turn a Firestore error into something actionable. `permission-denied` almost
+ * always means the security rules were never published — the console leaves new
+ * databases denying everything — so name that cause instead of echoing the SDK.
+ */
+function describe(err: unknown, action: string): string {
+  const code = (err as { code?: string })?.code ?? "";
+  if (code.includes("permission-denied")) {
+    return `Firestore refused the ${action}. Publish the rules from firestore.rules in the Firebase console (Firestore Database -> Rules); a new database denies everything until you do.`;
+  }
+  if (code.includes("unavailable")) return `Could not reach Firestore to ${action}. Check your connection.`;
+  return `Could not ${action} to Firestore: ${(err as Error)?.message ?? code ?? "unknown error"}`;
+}
+
 export type LibraryState = {
   books: Book[];
   loading: boolean;
+  /** Last storage failure, surfaced in the UI. Writes must never fail silently. */
+  error: string | null;
+  dismissError: () => void;
   user: User | null;
   /** True when writes go to this browser only, because Firebase is unconfigured. */
   localOnly: boolean;
@@ -44,6 +61,7 @@ export function useLibrary(): LibraryState {
   const [books, setBooks] = useState<Book[]>(() => (isFirebaseConfigured ? [] : readLocal()));
   /** uid whose library has finished its first load; drives `loading` by derivation. */
   const [loadedFor, setLoadedFor] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     return watchAuth((next) => {
@@ -62,8 +80,12 @@ export function useLibrary(): LibraryState {
       (snap) => {
         setBooks(snap.docs.map((d) => d.data() as Book));
         setLoadedFor(user.uid);
+        setError(null);
       },
-      () => setLoadedFor(user.uid),
+      (err) => {
+        setLoadedFor(user.uid);
+        setError(describe(err, "read"));
+      },
     );
   }, [user]);
 
@@ -81,12 +103,17 @@ export function useLibrary(): LibraryState {
         return;
       }
       const ref = collection(db(), "users", user.uid, "books");
-      for (let i = 0; i < incoming.length; i += BATCH_LIMIT) {
-        const batch = writeBatch(db());
-        for (const book of incoming.slice(i, i + BATCH_LIMIT)) {
-          batch.set(doc(ref, book.id), book);
+      try {
+        for (let i = 0; i < incoming.length; i += BATCH_LIMIT) {
+          const batch = writeBatch(db());
+          for (const book of incoming.slice(i, i + BATCH_LIMIT)) {
+            batch.set(doc(ref, book.id), book);
+          }
+          await batch.commit();
         }
-        await batch.commit();
+        setError(null);
+      } catch (err) {
+        setError(describe(err, "save"));
       }
     },
     [user],
@@ -102,7 +129,12 @@ export function useLibrary(): LibraryState {
         });
         return;
       }
-      await deleteDoc(doc(db(), "users", user.uid, "books", id));
+      try {
+        await deleteDoc(doc(db(), "users", user.uid, "books", id));
+        setError(null);
+      } catch (err) {
+        setError(describe(err, "delete"));
+      }
     },
     [user],
   );
@@ -114,10 +146,15 @@ export function useLibrary(): LibraryState {
       return;
     }
     const ref = collection(db(), "users", user.uid, "books");
-    for (let i = 0; i < books.length; i += BATCH_LIMIT) {
-      const batch = writeBatch(db());
-      for (const book of books.slice(i, i + BATCH_LIMIT)) batch.delete(doc(ref, book.id));
-      await batch.commit();
+    try {
+      for (let i = 0; i < books.length; i += BATCH_LIMIT) {
+        const batch = writeBatch(db());
+        for (const book of books.slice(i, i + BATCH_LIMIT)) batch.delete(doc(ref, book.id));
+        await batch.commit();
+      }
+      setError(null);
+    } catch (err) {
+      setError(describe(err, "delete"));
     }
   }, [user, books]);
 
@@ -127,6 +164,8 @@ export function useLibrary(): LibraryState {
     () => ({
       books,
       loading,
+      error,
+      dismissError: () => setError(null),
       user,
       localOnly: !isFirebaseConfigured,
       needsSignIn: isFirebaseConfigured && authReady && !user,
@@ -134,6 +173,6 @@ export function useLibrary(): LibraryState {
       deleteBook,
       clearAll,
     }),
-    [books, loading, authReady, user, saveBooks, deleteBook, clearAll],
+    [books, loading, error, authReady, user, saveBooks, deleteBook, clearAll],
   );
 }

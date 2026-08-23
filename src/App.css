@@ -194,3 +194,9 @@ select, input[type="text"], input[type="date"], input:not([type]) {
   .tooltip { font-size: 11px; }
   .book-actions { flex-direction: column; }
 }
+
+.error-banner {
+  border-left-color: var(--danger);
+  display: flex; align-items: center; gap: 12px; justify-content: space-between;
+}
+.small-btn { padding: 3px 9px; font-size: 12px; flex: none; }

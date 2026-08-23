@@ -106,6 +106,15 @@ export default function App() {
         </div>
       </header>
 
+      {library.error && (
+        <p className="banner error-banner" role="alert">
+          {library.error}
+          <button className="ghost small-btn" onClick={library.dismissError}>
+            Dismiss
+          </button>
+        </p>
+      )}
+
       {library.localOnly && (
         <p className="banner">
           Saving to this browser only — Firebase is not configured, so your library will not
