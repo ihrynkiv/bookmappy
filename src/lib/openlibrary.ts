@@ -37,6 +37,8 @@ export async function searchBooks(query: string, signal?: AbortSignal): Promise<
       year: d.first_publish_year ?? null,
       pages: d.number_of_pages_median ?? null,
       isbn: d.isbn?.[0] ?? null,
-      coverUrl: d.cover_i ? `https://covers.openlibrary.org/b/id/${d.cover_i}-M.jpg` : null,
+      coverUrl: d.cover_i
+        ? `https://covers.openlibrary.org/b/id/${d.cover_i}-M.jpg?default=false`
+        : null,
     }));
 }

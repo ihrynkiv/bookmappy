@@ -7,6 +7,7 @@ you've read. Click a country to see just those books.
 - **Colour the map by** books read, distinct authors, average rating, or pages.
 - **Author countries are looked up automatically** from Wikidata. No API key.
 - **Import from Goodreads** via the CSV export.
+- **Batch-fix countries** — select several books and assign one country at once.
 - Works on phone and laptop. Static site, no server of your own.
 
 ## How an author gets a country
@@ -39,8 +40,10 @@ Country then comes from, in order:
 On a 30-author benchmark spanning modern, Soviet, Habsburg and ancient writers,
 all 30 resolve correctly. It will still get things wrong — Nabokov comes out as
 the United States, which is defensible but arguable. **Every book has a manual
-country override**, and anything unresolved is listed under "Not on the map" with
-a one-click fix. Manual choices are never overwritten by a later lookup.
+country override**, and anything unresolved is listed under "Not on the map".
+Select any number of books there and set their country in one go — useful when a
+batch of authors from the same place all failed to resolve. Manual choices are
+never overwritten by a later lookup.
 
 ## Running it locally
 
@@ -68,6 +71,7 @@ npm run check   # types, lint, and a jsdom render of the whole app
 | `src/lib/stats.ts` | Per-country aggregation |
 | `src/lib/store.ts` | Firestore-or-local storage, live-synced |
 | `src/components/WorldMap.tsx` | The choropleth |
+| `src/components/BookList.tsx` | Selectable book list with bulk actions |
 
 No API keys are needed for Wikidata or Open Library, and neither is proxied —
 both send `Access-Control-Allow-Origin: *`, so the browser talks to them directly.

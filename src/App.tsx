@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { WorldMap } from "./components/WorldMap";
 import { CountryPanel } from "./components/CountryPanel";
-import { BookRow } from "./components/BookRow";
+import { BookList } from "./components/BookList";
 import { AddBookDialog } from "./components/AddBookDialog";
 import { EditBookDialog } from "./components/EditBookDialog";
 import { ImportDialog } from "./components/ImportDialog";
@@ -23,6 +23,7 @@ export default function App() {
   const [selected, setSelected] = useState<string | null>(null);
   const [dialog, setDialog] = useState<"add" | "import" | null>(null);
   const [editing, setEditing] = useState<Book | null>(null);
+  const [selected_, setSelectedIds] = useState<Set<string>>(() => new Set());
 
   const shelves = useMemo(
     () => [...new Set(library.books.map((b) => b.shelf))].sort(),
@@ -50,6 +51,40 @@ export default function App() {
     [stats],
   );
 
+  const toggleSelect = (id: string) =>
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  const clearSelection = () => setSelectedIds(new Set());
+
+  /**
+   * Bulk country assignment. Marked manual so a later automatic pass never
+   * overwrites a decision made here.
+   */
+  async function assignCountry(ids: string[], iso: string) {
+    const wanted = new Set(ids);
+    const updated = library.books
+      .filter((b) => wanted.has(b.id))
+      .map((b) => ({
+        ...b,
+        countryCode: iso,
+        countryManual: true,
+        status: "resolved" as const,
+        note: "set by hand",
+        updatedAt: Date.now(),
+      }));
+    clearSelection();
+    await library.saveBooks(updated);
+  }
+
+  async function deleteMany(ids: string[]) {
+    clearSelection();
+    await library.deleteBooks(ids);
+  }
+
   async function addBook(book: Book) {
     setDialog(null);
     await library.saveBooks([book]);
@@ -71,6 +106,17 @@ export default function App() {
     a.click();
     URL.revokeObjectURL(url);
   }
+
+  const selectionProps = {
+    selected: selected_,
+    onToggle: toggleSelect,
+    onSelectAll: (ids: string[]) => setSelectedIds(new Set(ids)),
+    onClearSelection: clearSelection,
+    onAssignCountry: (ids: string[], iso: string) => void assignCountry(ids, iso),
+    onDeleteMany: (ids: string[]) => void deleteMany(ids),
+    onEdit: setEditing,
+    onDelete: (id: string) => void library.deleteBook(id),
+  };
 
   if (library.needsSignIn) {
     return (
@@ -136,7 +182,14 @@ export default function App() {
         </div>
         <div className="spacer" />
         {shelves.length > 1 && (
-          <select value={shelf} onChange={(e) => setShelf(e.target.value)} aria-label="Shelf">
+          <select
+            value={shelf}
+            onChange={(e) => {
+              setShelf(e.target.value);
+              clearSelection();
+            }}
+            aria-label="Shelf"
+          >
             <option value="all">all shelves</option>
             {shelves.map((s) => (
               <option key={s} value={s}>
@@ -173,16 +226,26 @@ export default function App() {
           </button>
         </div>
       ) : (
-        <WorldMap stats={stats} metric={metric} selected={selected} onSelect={setSelected} />
+        <WorldMap
+          stats={stats}
+          metric={metric}
+          selected={selected}
+          onSelect={(iso) => {
+            setSelected(iso);
+            clearSelection();
+          }}
+        />
       )}
 
       {selected && stats.get(selected) ? (
         <CountryPanel
           stat={stats.get(selected)!}
           books={selectedBooks}
-          onClose={() => setSelected(null)}
-          onEdit={setEditing}
-          onDelete={(id) => void library.deleteBook(id)}
+          onClose={() => {
+            setSelected(null);
+            clearSelection();
+          }}
+          selection={selectionProps}
         />
       ) : (
         library.books.length > 0 && (
@@ -192,7 +255,13 @@ export default function App() {
               <ol className="ranked">
                 {topCountries.map((c) => (
                   <li key={c.code}>
-                    <button className="rank-row" onClick={() => setSelected(c.code)}>
+                    <button
+                      className="rank-row"
+                      onClick={() => {
+                        setSelected(c.code);
+                        clearSelection();
+                      }}
+                    >
                       <span className="rank-name">{c.name}</span>
                       <span className="muted small">
                         {c.books} · {c.avgRating ? `${c.avgRating.toFixed(1)}★` : "unrated"}
@@ -217,17 +286,7 @@ export default function App() {
                     Retry lookup
                   </button>
                 </header>
-                <ul className="book-list">
-                  {unplaced.slice(0, 40).map((book) => (
-                    <BookRow
-                      key={book.id}
-                      book={book}
-                      showCountry
-                      onEdit={setEditing}
-                      onDelete={(id) => void library.deleteBook(id)}
-                    />
-                  ))}
-                </ul>
+                <BookList books={unplaced} limit={40} showCountry {...selectionProps} />
               </section>
             )}
           </div>

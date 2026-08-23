@@ -52,6 +52,7 @@ export type LibraryState = {
   needsSignIn: boolean;
   saveBooks: (books: Book[]) => Promise<void>;
   deleteBook: (id: string) => Promise<void>;
+  deleteBooks: (ids: string[]) => Promise<void>;
   clearAll: () => Promise<void>;
 };
 
@@ -139,6 +140,33 @@ export function useLibrary(): LibraryState {
     [user],
   );
 
+  const deleteBooks = useCallback(
+    async (ids: string[]) => {
+      if (ids.length === 0) return;
+      if (!isFirebaseConfigured || !user) {
+        setBooks((prev) => {
+          const doomed = new Set(ids);
+          const next = prev.filter((b) => !doomed.has(b.id));
+          writeLocal(next);
+          return next;
+        });
+        return;
+      }
+      const ref = collection(db(), "users", user.uid, "books");
+      try {
+        for (let i = 0; i < ids.length; i += BATCH_LIMIT) {
+          const batch = writeBatch(db());
+          for (const id of ids.slice(i, i + BATCH_LIMIT)) batch.delete(doc(ref, id));
+          await batch.commit();
+        }
+        setError(null);
+      } catch (err) {
+        setError(describe(err, "delete"));
+      }
+    },
+    [user],
+  );
+
   const clearAll = useCallback(async () => {
     if (!isFirebaseConfigured || !user) {
       setBooks([]);
@@ -171,8 +199,9 @@ export function useLibrary(): LibraryState {
       needsSignIn: isFirebaseConfigured && authReady && !user,
       saveBooks,
       deleteBook,
+      deleteBooks,
       clearAll,
     }),
-    [books, loading, error, authReady, user, saveBooks, deleteBook, clearAll],
+    [books, loading, error, authReady, user, saveBooks, deleteBook, deleteBooks, clearAll],
   );
 }

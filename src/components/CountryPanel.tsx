@@ -1,15 +1,16 @@
+import type { ComponentProps } from "react";
 import type { Book, CountryStat } from "../lib/types";
-import { BookRow } from "./BookRow";
+import { BookList } from "./BookList";
 
 type Props = {
   stat: CountryStat;
   books: Book[];
   onClose: () => void;
-  onEdit: (book: Book) => void;
-  onDelete: (id: string) => void;
+  /** Everything the shared list needs for selection and bulk actions. */
+  selection: Omit<ComponentProps<typeof BookList>, "books" | "showCountry" | "limit">;
 };
 
-export function CountryPanel({ stat, books, onClose, onEdit, onDelete }: Props) {
+export function CountryPanel({ stat, books, onClose, selection }: Props) {
   return (
     <section className="panel">
       <header className="panel-head">
@@ -26,11 +27,7 @@ export function CountryPanel({ stat, books, onClose, onEdit, onDelete }: Props) 
           ✕
         </button>
       </header>
-      <ul className="book-list">
-        {books.map((book) => (
-          <BookRow key={book.id} book={book} onEdit={onEdit} onDelete={onDelete} />
-        ))}
-      </ul>
+      <BookList books={books} {...selection} />
     </section>
   );
 }

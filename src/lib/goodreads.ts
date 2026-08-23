@@ -73,7 +73,9 @@ export function parseGoodreadsCsv(csv: string): ParsedImport {
       dateRead: cleanDate(row["Date Read"]) ?? cleanDate(row["Date Added"]),
       pages: num(row["Number of Pages"]),
       isbn,
-      coverUrl: isbn ? `https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg` : null,
+      // `default=false` makes a missing cover 404 rather than return a blank
+      // placeholder image with HTTP 200, which would defeat the fallback.
+      coverUrl: isbn ? `https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg?default=false` : null,
       shelf,
       authorQid: null,
       countryCode: null,
