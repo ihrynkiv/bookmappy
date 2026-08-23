@@ -7,7 +7,9 @@ import { EditBookDialog } from "./components/EditBookDialog";
 import { ImportDialog } from "./components/ImportDialog";
 import { useLibrary } from "./lib/store";
 import { useAuthorResolution } from "./lib/useResolver";
-import { computeCountryStats, computeTotals, METRIC_LABELS } from "./lib/stats";
+import {
+  computeCountryStats, computeTotals, METRIC_LABELS, METRIC_LABELS_SHORT,
+} from "./lib/stats";
 import { isFirebaseConfigured, signIn, signOutUser } from "./lib/firebase";
 import type { Book, Metric } from "./lib/types";
 import "./App.css";
@@ -176,7 +178,8 @@ export default function App() {
               className={metric === m ? "active" : ""}
               onClick={() => setMetric(m)}
             >
-              {METRIC_LABELS[m]}
+              <span className="metric-long">{METRIC_LABELS[m]}</span>
+              <span className="metric-short">{METRIC_LABELS_SHORT[m]}</span>
             </button>
           ))}
         </div>

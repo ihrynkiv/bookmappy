@@ -8,6 +8,14 @@ export const METRIC_LABELS: Record<Metric, string> = {
   pages: "Pages read",
 };
 
+/** Abbreviations for narrow screens, where the full names do not fit. */
+export const METRIC_LABELS_SHORT: Record<Metric, string> = {
+  books: "Books",
+  authors: "Authors",
+  avgRating: "Rating",
+  pages: "Pages",
+};
+
 export function computeCountryStats(books: Book[]): Map<string, CountryStat> {
   const stats = new Map<string, CountryStat>();
   const authorsByCountry = new Map<string, Set<string>>();

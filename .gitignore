@@ -30,3 +30,6 @@ dist-ssr
 scripts/smoke.mjs
 scripts/smoke.css
 scripts/e2e.mjs
+
+# Layout-audit build and screenshots
+dist-audit

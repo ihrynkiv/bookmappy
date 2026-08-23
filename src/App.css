@@ -96,7 +96,12 @@ select, input[type="text"], input[type="date"], input:not([type]) {
 
 /* ---------- panels ---------- */
 .columns { display: grid; grid-template-columns: 1fr 1.35fr; gap: 14px; margin-top: 14px; align-items: start; }
+/* A grid track's automatic minimum is its content's min-content width, and book
+   titles are `white-space: nowrap`. Without this the track grows to fit the
+   longest title and drags the whole page into a horizontal scroll. */
+.columns > * { min-width: 0; }
 .panel {
+  min-width: 0;
   background: var(--surface); border: 1px solid var(--border);
   border-radius: 14px; padding: 14px 16px; box-shadow: var(--shadow); margin-top: 14px;
 }
@@ -200,10 +205,15 @@ select, input[type="text"], input[type="date"], input:not([type]) {
 @media (max-width: 860px) {
   .app { padding: 10px; }
   .columns { grid-template-columns: 1fr; }
-  .totals { gap: 16px; order: 3; width: 100%; }
-  .topbar { gap: 10px; padding-bottom: 10px; }
+  .topbar { gap: 8px 10px; padding-bottom: 10px; }
+  /* Line one is the title and the sign-out button; the stats get line two to
+     themselves. `flex-basis: 100%` is what forces the wrap — `width: 100%`
+     alone loses to the `flex: 1` basis of 0. */
+  .topbar h1 { flex: 1 1 auto; }
+  .topbar-actions { order: 2; flex: 0 0 auto; }
+  .totals { order: 3; flex: 1 0 100%; gap: 18px; }
   .segmented { width: 100%; }
-  .segmented button { flex: 1; padding: 8px 4px; font-size: 12px; }
+  .segmented button { flex: 1; min-width: 0; padding: 8px 4px; font-size: 12px; }
   .toolbar > button, .toolbar > select { flex: 1; min-width: 42%; }
   .spacer { display: none; }
   .tooltip { font-size: 11px; }
@@ -233,4 +243,12 @@ select, input[type="text"], input[type="date"], input:not([type]) {
 @media (max-width: 860px) {
   .bulk-bar { padding: 8px; }
   .bulk-bar select { min-width: 120px; }
+}
+
+/* The metric names are spelled out where there is room and abbreviated where
+   there is not; four nowrap labels do not fit across a 320px phone. */
+.metric-short { display: none; }
+@media (max-width: 860px) {
+  .metric-long { display: none; }
+  .metric-short { display: inline; }
 }

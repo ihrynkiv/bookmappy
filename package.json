@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "smoke": "esbuild scripts/smoke.tsx --bundle --platform=browser --conditions=browser --format=esm --jsx=automatic --outfile=scripts/smoke.mjs --log-level=error --loader:.json=json --external:jsdom --external:node:fs --define:import.meta.env={} --define:process.env.NODE_ENV=\\\"development\\\" && node scripts/smoke.mjs",
     "check": "tsc -b && npm run lint && npm run smoke",
-    "e2e": "esbuild scripts/e2e.ts --bundle --platform=node --format=esm --outfile=scripts/e2e.mjs --log-level=error && node scripts/e2e.mjs"
+    "e2e": "esbuild scripts/e2e.ts --bundle --platform=node --format=esm --outfile=scripts/e2e.mjs --log-level=error && node scripts/e2e.mjs",
+    "layout": "VITE_FIREBASE_API_KEY= VITE_FIREBASE_PROJECT_ID= vite build --outDir dist-audit --base / --logLevel error && node scripts/layout-audit.mjs"
   },
   "dependencies": {
     "d3-geo": "^3.1.1",
@@ -35,6 +36,7 @@
     "gh-pages": "^6.3.0",
     "jsdom": "^29.1.1",
     "oxlint": "^1.75.0",
+    "puppeteer-core": "^25.8.0",
     "typescript": "~6.0.2",
     "vite": "^8.2.0"
   },

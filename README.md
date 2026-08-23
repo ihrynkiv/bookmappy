@@ -56,8 +56,15 @@ It works immediately with **no Firebase set up** — books are saved in that
 browser only. See [SETUP.md](SETUP.md) to add sign-in and cross-device sync.
 
 ```bash
-npm run check   # types, lint, and a jsdom render of the whole app
+npm run check    # types, lint, and a jsdom render of the whole app
+npm run layout   # real-browser layout audit at phone and laptop widths
 ```
+
+`npm run layout` drives a Chrome already installed on the machine (no browser
+download) and asserts the page never scrolls horizontally at 320px, 390px, or
+1280px, printing the measured box of each landmark and writing screenshots to
+`dist-audit/`. jsdom has no layout engine, so the smoke test cannot see CSS
+regressions of that kind — this catches them.
 
 ## How it's put together
 
@@ -72,6 +79,7 @@ npm run check   # types, lint, and a jsdom render of the whole app
 | `src/lib/store.ts` | Firestore-or-local storage, live-synced |
 | `src/components/WorldMap.tsx` | The choropleth |
 | `src/components/BookList.tsx` | Selectable book list with bulk actions |
+| `scripts/layout-audit.mjs` | Real-browser layout checks and screenshots |
 
 No API keys are needed for Wikidata or Open Library, and neither is proxied —
 both send `Access-Control-Allow-Origin: *`, so the browser talks to them directly.
