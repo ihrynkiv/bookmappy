@@ -155,6 +155,55 @@ console.log("--- sorting ---");
   check("title asc", t("title", "asc"), "abc");
 }
 
+console.log("--- retry lookup ---");
+{
+  // The bug: retry only mutated a ref, so no render, no effect, no request.
+  // Assert a request is actually issued and its result reaches the library. The
+  // response is stubbed so `npm run check` stays fast and works offline.
+  //
+  // Both unplaced authors go out in one batched query; the stub answers for
+  // Harari and stays silent about Bulgakov, so we see a hit and a miss.
+  let calls = 0;
+  const realFetch = g.fetch;
+  g.fetch = async (u: any) => {
+    const url = String(u);
+    if (!url.includes("query.wikidata.org")) throw new Error("unexpected fetch: " + url);
+    calls += 1;
+    return {
+      ok: true, status: 200,
+      json: async () => ({ results: { bindings: [{
+        name: { value: "Yuval Noah Harari" },
+        author: { value: "http://www.wikidata.org/entity/Q2484404" },
+        authorLabel: { value: "Yuval Noah Harari" },
+        authorDescription: { value: "Israeli historian" },
+        sitelinks: { value: "90" }, occs: { value: "Q36180" },
+        cits: { value: "Q801" }, isos: { value: "IL" },
+      }] } }),
+    };
+  };
+
+  const btn = [...document.querySelectorAll("button")]
+    .find((b) => /Retry \d+/.test(b.textContent || "")) as any;
+  console.log("  retry button present:", Boolean(btn), "| label:", btn?.textContent);
+  if (!btn) errors.push("no retry button rendered");
+
+  const before = JSON.parse(dom.window.localStorage.getItem(KEY)!).filter((b: any) => !b.countryCode).length;
+  await act(async () => { btn.click(); });
+  await act(async () => { await new Promise((r) => setTimeout(r, 300)); });
+
+  const after = JSON.parse(dom.window.localStorage.getItem(KEY)!);
+  const hit = after.find((b: any) => b.author === "Yuval Noah Harari");
+  const miss = after.find((b: any) => b.author === "Mikhail Bulgakov");
+  console.log(`  wikidata requests fired: ${calls}`);
+  console.log(`  unplaced before -> after: ${before} -> ${after.filter((b: any) => !b.countryCode).length}`);
+  console.log(`  resolved author: ${hit?.countryCode ?? "—"} (${hit?.status})`);
+  console.log(`  unmatched author: ${miss?.countryCode ?? "—"} (${miss?.status})`);
+  if (calls === 0) errors.push("retry fired no request at all — the reported bug");
+  if (hit?.countryCode !== "IL") errors.push(`retry did not apply the result (got ${hit?.countryCode})`);
+  if (miss?.status !== "not-found") errors.push(`unmatched author should be not-found, got ${miss?.status}`);
+  g.fetch = realFetch;
+}
+
 console.log("--- bulk edit ---");
 const unplacedRows = qa(".panel input.row-check").length;
 console.log("unplaced rows with checkboxes:", unplacedRows);

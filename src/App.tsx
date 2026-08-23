@@ -21,7 +21,10 @@ const METRICS: Metric[] = ["books", "authors", "avgRating", "pages"];
 
 export default function App() {
   const library = useLibrary();
-  const { progress, retryAll } = useAuthorResolution(library.books, library.saveBooks);
+  const { progress, busy: resolving, retry } = useAuthorResolution(
+    library.books,
+    library.saveBooks,
+  );
 
   const [metric, setMetric] = useState<Metric>("books");
   const [shelf, setShelf] = useState("read");
@@ -327,8 +330,12 @@ export default function App() {
                       the map.
                     </p>
                   </div>
-                  <button className="ghost" onClick={retryAll}>
-                    Retry lookup
+                  <button
+                    className="ghost"
+                    disabled={resolving}
+                    onClick={() => void retry(unplaced)}
+                  >
+                    {resolving ? "Looking up…" : `Retry ${unplaced.length}`}
                   </button>
                 </header>
                 <BookList books={unplaced} limit={40} showCountry {...selectionProps} />
