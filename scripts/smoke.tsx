@@ -276,6 +276,11 @@ console.log("--- languages ---");
   await act(async () => { (q(".list-tools input[type=checkbox]") as any).click(); });
   const langPicker = q('.bulk-bar select[aria-label="Set language for selected books"]') as any;
   check("bulk bar has a language picker", Boolean(langPicker));
+  const opts = [...langPicker.options].map((o: any) => (o.disabled ? "|" : o.value));
+  check("picker pins Ukrainian, English, then the rest after a divider",
+        opts.slice(1, 9).join(",") === "uk,en,de,es,fr,ja,pl,|" &&
+        opts.filter((v: string) => v === "uk").length === 1,
+        opts.slice(0, 10).join(","));
   await act(async () => { setNativeValue(langPicker, dom.window.HTMLSelectElement, "uk"); });
   const ukr = stored().filter((b: any) => b.language === "uk");
   check("bulk language assigned", ukr.length === 5, `got ${ukr.length}`);
