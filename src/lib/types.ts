@@ -20,6 +20,8 @@ export type Book = {
   countryManual: boolean; // user overrode the automatic answer
   status: ResolutionStatus;
   note: string | null; // how we arrived at the country, shown in the UI
+  /** ISO 639-1 code of the language you read it in. Optional: older books lack it. */
+  language?: string | null;
   createdAt: number;
   updatedAt: number;
 };

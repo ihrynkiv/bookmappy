@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { searchBooks, type BookSearchResult } from "../lib/openlibrary";
 import type { Book } from "../lib/types";
 import { Dialog } from "./Dialog";
+import { LanguageField } from "./LanguageField";
 
 type Props = { onAdd: (book: Book) => void; onClose: () => void };
 
@@ -20,6 +21,7 @@ const blank = (): Book => ({
   countryManual: false,
   status: "pending",
   note: null,
+  language: null,
   createdAt: Date.now(),
   updatedAt: Date.now(),
 });
@@ -162,6 +164,12 @@ export function AddBookDialog({ onAdd, onClose }: Props) {
           </select>
         </div>
       </div>
+
+      <LanguageField
+        id="add-language"
+        value={draft.language}
+        onChange={(language) => setDraft({ ...draft, language })}
+      />
 
       <footer className="dialog-actions">
         <span className="muted small">The author's country is looked up automatically.</span>

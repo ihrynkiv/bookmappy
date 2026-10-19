@@ -82,6 +82,8 @@ export function parseGoodreadsCsv(csv: string): ParsedImport {
       countryManual: false,
       status: "pending",
       note: null,
+      // Goodreads does not export a language; set it in the app.
+      language: null,
       createdAt: now,
       updatedAt: now,
     });

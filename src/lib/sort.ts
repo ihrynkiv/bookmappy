@@ -1,7 +1,8 @@
 import type { Book } from "./types";
 import { countryName } from "./geo";
+import { languageName } from "./languages";
 
-export type SortField = "dateRead" | "rating" | "title" | "author" | "country";
+export type SortField = "dateRead" | "rating" | "title" | "author" | "country" | "language";
 export type SortDir = "asc" | "desc";
 
 export const SORT_LABELS: Record<SortField, string> = {
@@ -10,6 +11,7 @@ export const SORT_LABELS: Record<SortField, string> = {
   title: "Title",
   author: "Author",
   country: "Country",
+  language: "Language",
 };
 
 /** Default direction per field: newest and best-rated first feel right. */
@@ -19,6 +21,7 @@ export const DEFAULT_DIR: Record<SortField, SortDir> = {
   title: "asc",
   author: "asc",
   country: "asc",
+  language: "asc",
 };
 
 function key(book: Book, field: SortField): string | number | null {
@@ -28,6 +31,7 @@ function key(book: Book, field: SortField): string | number | null {
     case "title": return book.title.toLocaleLowerCase();
     case "author": return book.author.toLocaleLowerCase();
     case "country": return book.countryCode ? countryName(book.countryCode) : null;
+    case "language": return book.language ? languageName(book.language) : null;
   }
 }
 

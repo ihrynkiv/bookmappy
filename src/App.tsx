@@ -6,6 +6,7 @@ import { BooksView } from "./components/BooksView";
 import { AddBookDialog } from "./components/AddBookDialog";
 import { EditBookDialog } from "./components/EditBookDialog";
 import { ImportDialog } from "./components/ImportDialog";
+import { LanguagePanel } from "./components/LanguagePanel";
 import { useLibrary } from "./lib/store";
 import { useAuthorResolution } from "./lib/useResolver";
 import {
@@ -14,6 +15,7 @@ import {
 import { isFirebaseConfigured, signIn, signOutUser } from "./lib/firebase";
 import type { SortDir, SortField } from "./lib/sort";
 import { planImport } from "./lib/import";
+import { computeLanguageStats, languageName } from "./lib/languages";
 import type { Book, Metric } from "./lib/types";
 import "./App.css";
 
@@ -36,6 +38,8 @@ export default function App() {
   const [sort, setSort] = useState<{ field: SortField; dir: SortDir }>({
     field: "dateRead", dir: "desc",
   });
+  /** Books view narrowed to one language; `code: null` means "no language set". */
+  const [langFilter, setLangFilter] = useState<{ code: string | null } | null>(null);
 
   const shelves = useMemo(
     () => [...new Set(library.books.map((b) => b.shelf))].sort(),
@@ -47,6 +51,12 @@ export default function App() {
   );
   const stats = useMemo(() => computeCountryStats(visible), [visible]);
   const totals = useMemo(() => computeTotals(visible, stats), [visible, stats]);
+  const languageCount = useMemo(() => computeLanguageStats(visible).languages.length, [visible]);
+  const listed = useMemo(
+    () =>
+      langFilter ? visible.filter((b) => (b.language ?? null) === langFilter.code) : visible,
+    [visible, langFilter],
+  );
 
   const selectedBooks = useMemo(
     () =>
@@ -73,7 +83,13 @@ export default function App() {
     setView("books");
     setSelected(null);
     clearSelection();
+    setLangFilter(null);
     setSort({ field, dir });
+  }
+
+  function openLanguage(code: string | null) {
+    openBooks("dateRead", "desc");
+    setLangFilter({ code });
   }
 
   const toggleSelect = (id: string) =>
@@ -101,6 +117,16 @@ export default function App() {
         note: "set by hand",
         updatedAt: Date.now(),
       }));
+    clearSelection();
+    await library.saveBooks(updated);
+  }
+
+  /** Bulk language assignment; `null` clears it. */
+  async function assignLanguage(ids: string[], code: string | null) {
+    const wanted = new Set(ids);
+    const updated = library.books
+      .filter((b) => wanted.has(b.id))
+      .map((b) => ({ ...b, language: code, updatedAt: Date.now() }));
     clearSelection();
     await library.saveBooks(updated);
   }
@@ -147,6 +173,7 @@ export default function App() {
     onSelectAll: (ids: string[]) => setSelectedIds(new Set(ids)),
     onClearSelection: clearSelection,
     onAssignCountry: (ids: string[], iso: string) => void assignCountry(ids, iso),
+    onAssignLanguage: (ids: string[], code: string | null) => void assignLanguage(ids, code),
     onDeleteMany: (ids: string[]) => void deleteMany(ids),
     onEdit: setEditing,
     onDelete: (id: string) => void library.deleteBook(id),
@@ -177,6 +204,7 @@ export default function App() {
           <Total value={totals.books} label="books" onClick={() => openBooks("dateRead", "desc")} />
           <Total value={totals.authors} label="authors" onClick={() => openBooks("author", "asc")} />
           <Total value={totals.countries} label="countries" onClick={() => openBooks("country", "asc")} />
+          <Total value={languageCount} label="languages" onClick={() => openBooks("language", "asc")} />
           <Total
             value={totals.avgRating ? totals.avgRating.toFixed(2) : "—"}
             label="avg rating"
@@ -258,10 +286,23 @@ export default function App() {
 
       {view === "books" ? (
         <BooksView
-          books={visible}
+          books={listed}
           sort={sort}
           onSort={(field, dir) => setSort({ field, dir })}
           selection={selectionProps}
+          filter={
+            langFilter
+              ? {
+                  label: langFilter.code
+                    ? `Language: ${languageName(langFilter.code)}`
+                    : "No language set",
+                  onClear: () => {
+                    setLangFilter(null);
+                    clearSelection();
+                  },
+                }
+              : undefined
+          }
         />
       ) : library.loading ? (
         <p className="empty">Loading your library…</p>
@@ -298,27 +339,31 @@ export default function App() {
       ) : (
         library.books.length > 0 && (
           <div className="columns">
-            <section className="panel">
-              <h2>Most read countries</h2>
-              <ol className="ranked">
-                {topCountries.map((c) => (
-                  <li key={c.code}>
-                    <button
-                      className="rank-row"
-                      onClick={() => {
-                        setSelected(c.code);
-                        clearSelection();
-                      }}
-                    >
-                      <span className="rank-name">{c.name}</span>
-                      <span className="muted small">
-                        {c.books} · {c.avgRating ? `${c.avgRating.toFixed(1)}★` : "unrated"}
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ol>
-            </section>
+            <div className="side-stack">
+              <section className="panel">
+                <h2>Most read countries</h2>
+                <ol className="ranked">
+                  {topCountries.map((c) => (
+                    <li key={c.code}>
+                      <button
+                        className="rank-row"
+                        onClick={() => {
+                          setSelected(c.code);
+                          clearSelection();
+                        }}
+                      >
+                        <span className="rank-name">{c.name}</span>
+                        <span className="muted small">
+                          {c.books} · {c.avgRating ? `${c.avgRating.toFixed(1)}★` : "unrated"}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ol>
+              </section>
+
+              <LanguagePanel books={visible} onPick={openLanguage} />
+            </div>
 
             {unplaced.length > 0 && (
               <section className="panel">
