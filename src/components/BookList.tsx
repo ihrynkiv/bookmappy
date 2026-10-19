@@ -1,7 +1,7 @@
 import { ALL_COUNTRIES } from "../lib/geo";
-import { ALL_LANGUAGES } from "../lib/languages";
 import type { Book } from "../lib/types";
 import { BookRow } from "./BookRow";
+import { LanguageOptions } from "./LanguageField";
 
 /** Sentinel option value; a real select value cannot be null. */
 const CLEAR = "__clear";
@@ -89,11 +89,7 @@ export function BookList({
             }}
           >
             <option value="">Set language to…</option>
-            {ALL_LANGUAGES.map((l) => (
-              <option key={l.code} value={l.code}>
-                {l.name}
-              </option>
-            ))}
+            <LanguageOptions />
             <option value={CLEAR}>— clear language —</option>
           </select>
           <button

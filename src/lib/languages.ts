@@ -29,9 +29,21 @@ export function languageName(code: string): string {
   }
 }
 
-/** Every pickable language, alphabetically by English name. */
-export const ALL_LANGUAGES = CODES
-  .map((code) => ({ code, name: languageName(code) }))
+/**
+ * Pinned to the top of every language picker, in this order: nearly everything
+ * in this library is read in Ukrainian, most of the rest in English.
+ */
+const PREFERRED = ["uk", "en", "de", "es", "fr", "ja", "pl"];
+
+const named = (code: string) => ({ code, name: languageName(code) });
+
+/** The pinned languages, in pinned order. */
+export const PREFERRED_LANGUAGES = PREFERRED.map(named);
+
+/** Every other pickable language, alphabetically by English name. */
+export const OTHER_LANGUAGES = CODES
+  .filter((code) => !PREFERRED.includes(code))
+  .map(named)
   .sort((a, b) => a.name.localeCompare(b.name));
 
 export type LanguageStat = { code: string; name: string; books: number };

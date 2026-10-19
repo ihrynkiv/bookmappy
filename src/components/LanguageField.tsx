@@ -1,4 +1,4 @@
-import { ALL_LANGUAGES } from "../lib/languages";
+import { OTHER_LANGUAGES, PREFERRED_LANGUAGES } from "../lib/languages";
 
 type Props = {
   id: string;
@@ -15,12 +15,30 @@ export function LanguageField({ id, value, onChange }: Props) {
       </label>
       <select id={id} value={value ?? ""} onChange={(e) => onChange(e.target.value || null)}>
         <option value="">— not set —</option>
-        {ALL_LANGUAGES.map((l) => (
-          <option key={l.code} value={l.code}>
-            {l.name}
-          </option>
-        ))}
+        <LanguageOptions />
       </select>
     </div>
+  );
+}
+
+/**
+ * The pinned languages, a divider, then the rest alphabetically. Shared with
+ * the bulk "Set language to…" picker so both read the same.
+ */
+export function LanguageOptions() {
+  return (
+    <>
+      {PREFERRED_LANGUAGES.map((l) => (
+        <option key={l.code} value={l.code}>
+          {l.name}
+        </option>
+      ))}
+      <option disabled>──────────</option>
+      {OTHER_LANGUAGES.map((l) => (
+        <option key={l.code} value={l.code}>
+          {l.name}
+        </option>
+      ))}
+    </>
   );
 }
