@@ -1,5 +1,6 @@
 import type { Book } from "../lib/types";
 import { countryName } from "../lib/geo";
+import { languageName } from "../lib/languages";
 import { Cover } from "./Cover";
 
 type Props = {
@@ -35,6 +36,7 @@ export function BookRow({
           {showCountry && book.countryCode && (
             <span className="book-country">{countryName(book.countryCode)}</span>
           )}
+          {book.language && <span className="book-lang">{languageName(book.language)}</span>}
           {book.shelf !== "read" && <span className="book-shelf">{book.shelf}</span>}
         </span>
         {book.note && <span className="note">{book.note}</span>}

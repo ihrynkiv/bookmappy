@@ -3,6 +3,7 @@ import { ALL_COUNTRIES, countryName } from "../lib/geo";
 import { countryForQid, resolveAuthor } from "../lib/wikidata";
 import type { AuthorCandidate, Book } from "../lib/types";
 import { Dialog } from "./Dialog";
+import { LanguageField } from "./LanguageField";
 
 type Props = {
   book: Book;
@@ -105,6 +106,12 @@ export function EditBookDialog({ book, onSave, onClose }: Props) {
           </select>
         </div>
       </div>
+
+      <LanguageField
+        id="edit-language"
+        value={draft.language}
+        onChange={(language) => setDraft({ ...draft, language })}
+      />
 
       <div className="field">
         <label htmlFor="edit-country">

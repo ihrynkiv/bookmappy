@@ -129,6 +129,10 @@ console.log("--- re-import merge ---");
   p = planImport([manual], [{ ...base, author: "T. Shevchenko" }], true);
   check("renamed author does NOT undo a manual country", p.books[0].countryCode === "PL");
 
+  // Goodreads exports no language, so a re-import must not wipe one set here.
+  p = planImport([{ ...base, language: "uk" }], [{ ...reread, language: null }], true);
+  check("language survives re-import", p.books[0].language === "uk", `got ${p.books[0].language}`);
+
   p = planImport([base], [reread, brandNew], false);
   check("updateExisting=false skips known books", p.added === 1 && p.skipped === 1 && p.books.length === 1);
 
@@ -153,6 +157,9 @@ console.log("--- sorting ---");
   check("country asc (by name)", t("country", "asc"), "cba");
   check("date desc, nulls last", t("dateRead", "desc"), "bca");
   check("title asc", t("title", "asc"), "abc");
+  const langs = [{ ...list[0], language: "uk" }, { ...list[1], language: null }, { ...list[2], language: "en" }];
+  check("language asc (by name), unset last",
+        sortBooks(langs, "language", "asc").map((b) => b.title).join(""), "cba");
 }
 
 console.log("--- retry lookup ---");
@@ -250,6 +257,50 @@ console.log("--- navigation ---");
   const home = q(".map-wrap") !== null && !document.body.textContent?.includes("All books");
   console.log("  clicking the wordmark returns to the map:", home);
   if (!home) errors.push("wordmark did not return home");
+}
+
+console.log("--- languages ---");
+{
+  const check = (name: string, cond: boolean, detail = "") => {
+    console.log(`  ${cond ? "ok  " : "FAIL"} ${name}${detail ? "  " + detail : ""}`);
+    if (!cond) errors.push("languages: " + name);
+  };
+  const stored = () => JSON.parse(dom.window.localStorage.getItem(KEY)!);
+  const panelText = () =>
+    qa(".panel").find((p) => p.querySelector("h2")?.textContent === "Languages")?.textContent ?? "";
+  check("panel prompts to tag when nothing is set", panelText().includes("no language"));
+
+  // Bulk-tag every read book as Ukrainian from the all-books view.
+  const countriesBefore = JSON.stringify(stored().map((b: any) => b.countryCode));
+  await act(async () => { (qa(".total")[0] as any).click(); });
+  await act(async () => { (q(".list-tools input[type=checkbox]") as any).click(); });
+  const langPicker = q('.bulk-bar select[aria-label="Set language for selected books"]') as any;
+  check("bulk bar has a language picker", Boolean(langPicker));
+  await act(async () => { setNativeValue(langPicker, dom.window.HTMLSelectElement, "uk"); });
+  const ukr = stored().filter((b: any) => b.language === "uk");
+  check("bulk language assigned", ukr.length === 5, `got ${ukr.length}`);
+  check("countries untouched by language edit",
+        JSON.stringify(stored().map((b: any) => b.countryCode)) === countriesBefore);
+  check("rows show the language chip", qa(".book-lang").length === 5);
+
+  // Clear it on one book again.
+  await act(async () => { (q(".book-row .row-check") as any).click(); });
+  await act(async () => {
+    setNativeValue(q('.bulk-bar select[aria-label="Set language for selected books"]'), dom.window.HTMLSelectElement, "__clear");
+  });
+  check("clear language works", stored().filter((b: any) => b.language === "uk").length === 4);
+
+  // Home: the chart shows one bar, and clicking it filters the list.
+  await act(async () => { (q(".wordmark") as any).click(); });
+  const bars = qa(".lang-row");
+  check("chart has one bar for Ukrainian", bars.length === 1 && bars[0].textContent!.includes("Ukrainian"),
+        bars.map((b) => b.textContent).join(" | "));
+  check("header counts languages", qa(".total").some((t) => t.textContent === "1languages"));
+  await act(async () => { (bars[0] as any).click(); });
+  check("bar opens a filtered list", q(".filter-chip")?.textContent?.includes("Ukrainian") === true &&
+        qa(".book-row").length === 4, `rows ${qa(".book-row").length}`);
+  await act(async () => { (q(".filter-chip button") as any).click(); });
+  check("clearing the filter shows every book", qa(".book-row").length === 5 && q(".filter-chip") === null);
 }
 
 console.log("--- errors ---");

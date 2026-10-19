@@ -55,10 +55,13 @@ const COVERS = {
   // A real cover, which must survive and not be mistaken for a placeholder.
   "The Art of War": "https://covers.openlibrary.org/b/isbn/9780307476463-M.jpg?default=false",
 };
+// A spread of reading languages, plus a couple unset, so the language chart has
+// long names and short bars to lay out.
+const LANGS = ["en", "uk", "en", "en", "uk", "ja", "ru", "es", "en", "en", null, null];
 const seed = JSON.stringify(books.map(([title, author, cc, rating], i) => ({
   id: `b${i}`, title, author, rating, dateRead: "2024-01-0" + ((i % 9) + 1), pages: 300, isbn: null,
   coverUrl: COVERS[title] ?? null, shelf: "read", authorQid: null, countryCode: cc, countryManual: false,
-  status: cc ? "resolved" : "no-country", note: null, createdAt: 0, updatedAt: 0,
+  status: cc ? "resolved" : "no-country", note: null, language: LANGS[i], createdAt: 0, updatedAt: 0,
 })));
 
 const browser = await puppeteer.launch({ executablePath: CHROME, headless: "new", args: ["--no-sandbox"] });
@@ -163,6 +166,12 @@ results.push(await audit("mobile-books", 390, 844, openBooks));
 results.push(await audit("mobile-small", 320, 700));
 results.push(await audit("mobile-small-signed-in", 320, 700, signedIn));
 results.push(await audit("mobile-small-books", 320, 700, openBooks));
+// Both bulk pickers (country and language) side by side at the narrowest width.
+results.push(await audit("mobile-small-bulk", 320, 700, async (p) => {
+  await openBooks(p);
+  await p.evaluate(() => document.querySelector(".list-tools input")?.click());
+  await new Promise((r) => setTimeout(r, 250));
+}));
 results.push(await audit("laptop", 1280, 800));
 results.push(await audit("laptop-books", 1280, 800, openBooks));
 

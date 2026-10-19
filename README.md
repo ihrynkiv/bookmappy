@@ -8,6 +8,11 @@ you've read. Click a country to see just those books.
 - **Author countries are looked up automatically** from Wikidata. No API key.
 - **Import from Goodreads** via the CSV export.
 - **Batch-fix countries** — select several books and assign one country at once.
+- **Reading languages** — optionally tag each book with the language you read it
+  in, from the add/edit dialogs or in bulk from any selection. A bar chart shows
+  how your reading splits across languages; click a bar to list those books.
+  Goodreads exports no language, so imported books start untagged, and a
+  re-import never clears a language you set.
 - **Full book list** — click any figure in the header to see every book, sortable
   by date read, rating, title, author or country. Click the wordmark for the map.
 - **Re-import safely** — a fresh Goodreads export only looks up the new authors.
@@ -79,6 +84,7 @@ regressions of that kind — this catches them.
 | `src/lib/goodreads.ts` | CSV export parser |
 | `src/lib/import.ts` | Merge plan for re-imports (preserves resolution) |
 | `src/lib/sort.ts` | Book list sorting |
+| `src/lib/languages.ts` | Language list, names and per-language counts |
 | `src/lib/geo.ts` | TopoJSON ↔ ISO alpha-2 bridge |
 | `src/lib/stats.ts` | Per-country aggregation |
 | `src/lib/store.ts` | Firestore-or-local storage, live-synced |

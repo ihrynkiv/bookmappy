@@ -1,6 +1,10 @@
 import { ALL_COUNTRIES } from "../lib/geo";
+import { ALL_LANGUAGES } from "../lib/languages";
 import type { Book } from "../lib/types";
 import { BookRow } from "./BookRow";
+
+/** Sentinel option value; a real select value cannot be null. */
+const CLEAR = "__clear";
 
 type Props = {
   books: Book[];
@@ -9,6 +13,8 @@ type Props = {
   onSelectAll: (ids: string[]) => void;
   onClearSelection: () => void;
   onAssignCountry: (ids: string[], iso: string) => void;
+  /** `null` clears the language. */
+  onAssignLanguage: (ids: string[], code: string | null) => void;
   onDeleteMany: (ids: string[]) => void;
   onEdit: (book: Book) => void;
   onDelete: (id: string) => void;
@@ -20,11 +26,12 @@ type Props = {
 /**
  * A selectable list of books. The bulk bar is the fast path for the common
  * repair job: a batch of authors Wikidata could not place that all belong to
- * the same country.
+ * the same country — or, since Goodreads exports no language, a shelf of books
+ * all read in the same one.
  */
 export function BookList({
   books, selected, onToggle, onSelectAll, onClearSelection,
-  onAssignCountry, onDeleteMany, onEdit, onDelete, showCountry, limit,
+  onAssignCountry, onAssignLanguage, onDeleteMany, onEdit, onDelete, showCountry, limit,
 }: Props) {
   const visible = limit ? books.slice(0, limit) : books;
   const ids = books.map((b) => b.id);
@@ -70,6 +77,24 @@ export function BookList({
                 {c.name}
               </option>
             ))}
+          </select>
+          <select
+            defaultValue=""
+            aria-label="Set language for selected books"
+            onChange={(e) => {
+              const value = e.target.value;
+              if (!value) return;
+              onAssignLanguage(chosen, value === CLEAR ? null : value);
+              e.target.value = "";
+            }}
+          >
+            <option value="">Set language to…</option>
+            {ALL_LANGUAGES.map((l) => (
+              <option key={l.code} value={l.code}>
+                {l.name}
+              </option>
+            ))}
+            <option value={CLEAR}>— clear language —</option>
           </select>
           <button
             className="ghost danger"
