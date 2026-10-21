@@ -3,6 +3,7 @@ import { searchBooks, type BookSearchResult } from "../lib/openlibrary";
 import type { Book } from "../lib/types";
 import { Dialog } from "./Dialog";
 import { LanguageField } from "./LanguageField";
+import { RatingField } from "./RatingField";
 
 type Props = { onAdd: (book: Book) => void; onClose: () => void };
 
@@ -127,21 +128,11 @@ export function AddBookDialog({ onAdd, onClose }: Props) {
       </div>
 
       <div className="row">
-        <div className="field">
-          <label htmlFor="add-rating">Rating</label>
-          <select
-            id="add-rating"
-            value={draft.rating ?? 0}
-            onChange={(e) => setDraft({ ...draft, rating: Number(e.target.value) || null })}
-          >
-            <option value={0}>Unrated</option>
-            {[1, 2, 3, 4, 5].map((n) => (
-              <option key={n} value={n}>
-                {"★".repeat(n)}
-              </option>
-            ))}
-          </select>
-        </div>
+        <RatingField
+          id="add-rating"
+          value={draft.rating}
+          onChange={(rating) => setDraft({ ...draft, rating })}
+        />
         <div className="field">
           <label htmlFor="add-date">Date read</label>
           <input

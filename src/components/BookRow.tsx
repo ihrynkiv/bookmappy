@@ -2,6 +2,7 @@ import type { Book } from "../lib/types";
 import { countryName } from "../lib/geo";
 import { languageName } from "../lib/languages";
 import { Cover } from "./Cover";
+import { Stars } from "./Stars";
 
 type Props = {
   book: Book;
@@ -42,7 +43,7 @@ export function BookRow({
         {book.note && <span className="note">{book.note}</span>}
       </div>
       <div className="book-side">
-        <span className="rating">{book.rating ? "★".repeat(book.rating) : "—"}</span>
+        <Stars rating={book.rating} />
         {book.dateRead && <span className="muted small">{book.dateRead}</span>}
       </div>
       <div className="book-actions">

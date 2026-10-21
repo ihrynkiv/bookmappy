@@ -6,7 +6,8 @@ you've read. Click a country to see just those books.
 
 - **Colour the map by** books read, distinct authors, average rating, or pages.
 - **Author countries are looked up automatically** from Wikidata. No API key.
-- **Import from Goodreads** via the CSV export.
+- **Import from Goodreads** via the CSV export, including quarter-star ratings
+  (4.25, 3.5…), shown as partly filled stars with the figure beside them.
 - **Batch-fix countries** — select several books and assign one country at once.
 - **Reading languages** — optionally tag each book with the language you read it
   in, from the add/edit dialogs or in bulk from any selection. A bar chart shows

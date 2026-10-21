@@ -9,7 +9,7 @@ export type Book = {
   id: string;
   title: string;
   author: string;
-  rating: number | null; // 1-5; null = unrated
+  rating: number | null; // 0.25-5 in quarter stars; null = unrated
   dateRead: string | null; // YYYY-MM-DD
   pages: number | null;
   isbn: string | null;

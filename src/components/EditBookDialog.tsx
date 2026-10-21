@@ -4,6 +4,7 @@ import { countryForQid, resolveAuthor } from "../lib/wikidata";
 import type { AuthorCandidate, Book } from "../lib/types";
 import { Dialog } from "./Dialog";
 import { LanguageField } from "./LanguageField";
+import { RatingField } from "./RatingField";
 
 type Props = {
   book: Book;
@@ -67,23 +68,11 @@ export function EditBookDialog({ book, onSave, onClose }: Props) {
       </div>
 
       <div className="row">
-        <div className="field">
-          <label htmlFor="edit-rating">Rating</label>
-          <select
-            id="edit-rating"
-            value={draft.rating ?? 0}
-            onChange={(e) =>
-              setDraft({ ...draft, rating: Number(e.target.value) || null })
-            }
-          >
-            <option value={0}>Unrated</option>
-            {[1, 2, 3, 4, 5].map((n) => (
-              <option key={n} value={n}>
-                {"★".repeat(n)}
-              </option>
-            ))}
-          </select>
-        </div>
+        <RatingField
+          id="edit-rating"
+          value={draft.rating}
+          onChange={(rating) => setDraft({ ...draft, rating })}
+        />
         <div className="field">
           <label htmlFor="edit-date">Date read</label>
           <input

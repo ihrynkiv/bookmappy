@@ -36,6 +36,8 @@ const seeded = parsed.books.map((b) => ({
     b.author === "Mikhail Bulgakov" ? null
     : b.author === "Yuval Noah Harari" ? "https://covers.openlibrary.org/b/isbn/9781974710805-M.jpg"
     : b.coverUrl,
+  // A quarter-star rating, on a book that is on screen from the first paint.
+  rating: b.author === "Mikhail Bulgakov" ? 4.25 : b.rating,
 }));
 dom.window.localStorage.setItem(KEY, JSON.stringify(seeded));
 
@@ -139,6 +141,48 @@ console.log("--- re-import merge ---");
   const big = Array.from({ length: 300 }, (_, i) => ({ ...base, id: `gr-${i}` }));
   p = planImport(big, big, true);
   check("re-importing an unchanged library writes nothing", p.books.length === 0 && p.unchanged === 300);
+}
+
+console.log("--- quarter-star ratings ---");
+{
+  const { parseRating } = await import("../src/lib/rating");
+  const check = (name: string, cond: boolean, detail = "") => {
+    console.log(`  ${cond ? "ok  " : "FAIL"} ${name}${detail ? "  " + detail : ""}`);
+    if (!cond) errors.push("ratings: " + name);
+  };
+  const cases: [string | undefined, number | null][] = [
+    ["5", 5], ["4.0", 4], ["3.75", 3.75], ["0.25", 0.25], ["0.5", 0.5], ["4,5", 4.5],
+    ["3.8", 3.75], ["0", null], ["", null], [undefined, null], ["7", 5], ["abc", null],
+  ];
+  for (const [raw, want] of cases) {
+    const got = parseRating(raw);
+    check(`parseRating(${JSON.stringify(raw)}) = ${want}`, got === want, got === want ? "" : `got ${got}`);
+  }
+
+  // A post-October-2026 export: decimals in My Rating, including below one star.
+  const csv = [
+    "Book Id,Title,Author,My Rating,Exclusive Shelf",
+    "1,Quarter,A,4.25,read", "2,Whole,B,4.0,read", "3,Half,C,0.5,read", "4,None,D,0,read",
+  ].join("\n");
+  const got = parseGoodreadsCsv(csv).books.map((b) => b.rating).join(",");
+  check("CSV import keeps quarter and half stars", got === "4.25,4,0.5,", got);
+
+  const row = qa(".book-row").find((r) => r.textContent?.includes("Bulgakov")) as any;
+  const fill = row?.querySelector(".stars-fill")?.style.width;
+  check("row fills stars to 4.25 (85%)", fill === "85%", `width ${fill}`);
+  check("row spells out 4.25", row?.querySelector(".rating-value")?.textContent === "4.25");
+  check("whole ratings show no figure",
+        qa(".book-row").filter((r) => !r.textContent?.includes("Bulgakov"))
+          .every((r) => !r.querySelector(".rating-value")));
+
+  // The edit dialog must show the imported 4.25, not fall back to "Unrated".
+  await act(async () => { row.querySelector('button[title="Edit book"]').click(); });
+  const sel = q("#edit-rating") as any;
+  check("edit dialog shows 4.25", sel?.value === "4.25", `value ${sel?.value}`);
+  check("picker lists quarter steps, best first",
+        [...sel.options].slice(1, 6).map((o: any) => o.value).join(",") === "5,4.75,4.5,4.25,4");
+  const cancel = qa(".dialog button").find((b) => b.textContent === "Cancel") as any;
+  await act(async () => { cancel.click(); });
 }
 
 console.log("--- sorting ---");

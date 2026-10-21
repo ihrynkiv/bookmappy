@@ -335,3 +335,12 @@ select, input[type="text"], input[type="date"], input:not([type]) {
   background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent);
 }
 .filter-chip button { padding: 0 6px; border: 0; background: transparent; color: inherit; font-size: 12px; }
+
+/* ---------- fractional ratings ---------- */
+.rating { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+/* Two copies of the stars stacked: a faint full row, and a gold one clipped to
+   the rating, so 4.25 fills exactly a quarter of the fifth star. */
+.stars { position: relative; display: inline-block; line-height: 1; }
+.stars-empty { color: color-mix(in srgb, var(--muted) 35%, transparent); }
+.stars-fill { position: absolute; inset: 0 auto 0 0; overflow: hidden; white-space: nowrap; }
+.rating-value { color: var(--muted); font-size: 11px; letter-spacing: 0; font-variant-numeric: tabular-nums; }
