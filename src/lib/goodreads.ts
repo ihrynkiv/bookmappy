@@ -1,5 +1,6 @@
 import Papa from "papaparse";
 import type { Book } from "./types";
+import { parseRating } from "./rating";
 
 /**
  * Goodreads shut its API down in 2020, so the only way in is the CSV export
@@ -62,14 +63,13 @@ export function parseGoodreadsCsv(csv: string): ParsedImport {
     }
     const shelf = (row["Exclusive Shelf"] ?? "read").trim() || "read";
     shelves.add(shelf);
-    const rating = Number((row["My Rating"] ?? "0").trim());
     const isbn = cleanIsbn(row["ISBN13"]) ?? cleanIsbn(row["ISBN"]);
 
     books.push({
       id: `gr-${(row["Book Id"] ?? "").trim() || crypto.randomUUID()}`,
       title,
       author,
-      rating: rating >= 1 && rating <= 5 ? rating : null,
+      rating: parseRating(row["My Rating"]),
       dateRead: cleanDate(row["Date Read"]) ?? cleanDate(row["Date Added"]),
       pages: num(row["Number of Pages"]),
       isbn,

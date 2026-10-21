@@ -41,7 +41,7 @@ const books = [
   ["Crime and Punishment", "Fyodor Dostoevsky", "RU", 5], ["One Hundred Years of Solitude", "Gabriel Garcia Marquez", "CO", 5],
   ["The Remains of the Day", "Kazuo Ishiguro", "GB", 4], ["Beloved", "Toni Morrison", "US", 5],
   ["An Extremely Long Book Title That Should Never Widen The Page", "Some Author With A Very Long Name Indeed", null, 3],
-  ["The Art of War", "Sun Tzu", null, 4],
+  ["The Art of War", "Sun Tzu", null, 4.25],
 ];
 // Cover shapes to exercise: a real cover, a legacy URL with no default=false
 // whose ISBN has no art (Open Library answers 200 + a 1x1 GIF), the same ISBN
